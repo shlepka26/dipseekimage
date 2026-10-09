@@ -254,6 +254,49 @@ def main() -> int:
                 _assert(a == b, f"{os.path.basename(f)}: {open_c}={a} {close_c}={b}")
     check("скобки в Kotlin сбалансированы", kotlin_balance)
 
+    def kotlin_no_return_in_expression_body():
+        """Ловушка Kotlin: в функции с телом-выражением ('= try { ... }')
+        запрещён return. Именно на этом упала реальная сборка в ImageSaver.kt:
+
+            e: Returns are prohibited for functions with an expression body
+
+        Скомпилировать здесь нечем, поэтому ловим хотя бы это статически.
+        """
+        def offenders(text: str) -> list[int]:
+            found = []
+            for m in re.finditer(r'fun\s+\w+\s*\([^)]*\)[^=\n]*=\s*try\s*\{', text):
+                start = text.index('{', m.end() - 1)
+                depth, i = 0, start
+                while i < len(text):
+                    if text[i] == '{':
+                        depth += 1
+                    elif text[i] == '}':
+                        depth -= 1
+                        if depth == 0:
+                            break
+                    i += 1
+                if re.search(r'\breturn\b', text[start:i + 1]):
+                    found.append(text[:start].count('\n') + 1)
+            return found
+
+        # Самопроверка: детектор обязан поймать заведомо плохой код,
+        # иначе проверка ниже ничего не значит.
+        bad = ('fun f(): String = try {\n'
+               '    val x = null ?: return "нет"\n'
+               '} catch (e: Throwable) {\n'
+               '    "ой"\n'
+               '}\n')
+        _assert(offenders(bad), "детектор не поймал заведомо плохой код")
+
+        problems = []
+        for f in all_files(".kt", SRC):
+            problems += [(os.path.basename(f), ln) for ln in offenders(read(f))]
+        _assert(not problems,
+                f"return внутри '= try {{ }}': {problems}. "
+                f"Нужно блочное тело: fun f(): T {{ return try {{ ... }} }}")
+        print("        return внутри тел-выражений не найден")
+    check("нет return в функциях с телом-выражением", kotlin_no_return_in_expression_body)
+
     def kotlin_package():
         for f in all_files(".kt", SRC):
             src = read(f)
