@@ -10,7 +10,7 @@
                              (нужен Chaquopy для сборки байткода и колёс)
       * Android SDK        - из ANDROID_SDK_ROOT/ANDROID_HOME, иначе скачает
                              command-line tools и поставит platform + build-tools
-      * Gradle 8.9         - из PATH, иначе скачает дистрибутив в .tools
+      * Gradle 8.11.1      - из PATH, иначе скачает дистрибутив в .tools
 
     Ничего не нужно настраивать вручную и не нужно править файлы проекта:
     путь к Python и список ABI передаются в Gradle свойствами.
@@ -42,7 +42,7 @@
 param(
     [string]$ApiLevel = '35',
     [string]$BuildTools = '35.0.0',
-    [string]$GradleVersion = '8.9',
+    [string]$GradleVersion = '8.11.1',
     [string]$SdkRoot = '',
     [string]$Python = '',
     [switch]$X86_64,
@@ -142,6 +142,9 @@ $GradleHintRules = @(
     @{ id = 'chaquopy_repo'
        re = 'Could not resolve com\.chaquo\.python|Plugin \[id: .com\.chaquo\.python'
        hint = 'Плагин Chaquopy не найден в репозиториях. Он публикуется на Maven Central, а не на Google Maven: в android/settings.gradle.kts должен быть mavenCentral().' }
+    @{ id = 'state_lock'
+       re = 'does not hold the state lock for root project|friendPathsSet'
+       hint = 'Известный баг связки Gradle + Chaquopy (chaquo/chaquopy#1339). Лечится так: убрать org.gradle.parallel=true из android/gradle.properties и обновить AGP до 8.9.x с Gradle 8.11.1. В проекте это уже сделано - значит, настройку вернули обратно.' }
     @{ id = 'java_version'
        re = 'Unsupported class file major version|requires Java 17|Unsupported Java'
        hint = 'Не та версия Java. Нужна ровно 17: Android Gradle Plugin 8.7 другие не поддерживает.' }

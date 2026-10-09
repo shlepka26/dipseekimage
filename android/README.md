@@ -43,7 +43,8 @@ Android (`dipkit/paths.py`), шрифтам `/system/fonts` и запуску к
 | `minSdk` | **24** | прямое следствие предыдущей строки |
 | ABI | **arm64-v8a** | все современные телефоны; вторая архитектура удвоит размер |
 | Java | **17** | требование Android Gradle Plugin 8.x |
-| Gradle | **8.9** | минимально нужный для AGP 8.7.3 |
+| AGP | **8.9.3** | на 8.7.x сборка с Chaquopy падает с «state lock»; 8.9.x — [подтверждённое решение](https://github.com/chaquo/chaquopy/issues/1339) |
+| Gradle | **8.11.1** | минимально нужный для AGP 8.9.3 |
 | Chaquopy | **17.0.0** | поддерживает AGP 7.3.x–9.2.x |
 | security-crypto | **1.1.0-alpha06** | нужен для шифрования ключа; в 1.1.x старый `MasterKeys.getOrCreate` удалён, поэтому используется `MasterKey.Builder` |
 
@@ -81,7 +82,7 @@ powershell -ExecutionPolicy Bypass -File .\build-apk.ps1
 | Java 17 | `JAVA_HOME`, `Program Files`, `PATH` |
 | Python 3.12 | `DIP_PYTHON`, bundled-рантайм DSH (там ровно 3.12), `PATH` |
 | Android SDK | `ANDROID_SDK_ROOT`/`ANDROID_HOME`, иначе скачает command-line tools и поставит platform + build-tools |
-| Gradle 8.9 | из `PATH`, иначе скачает дистрибутив в `.tools` |
+| Gradle 8.11.1 | из `PATH`, иначе скачает дистрибутив в `.tools` |
 
 Перед первой сборкой полезно посмотреть план, ничего не скачивая
 (работает офлайн):
@@ -190,6 +191,7 @@ gradle -Pdip.python="C:/Python312/python.exe" :app:assembleDebug
 
 | Симптом | Причина и что делать |
 |---|---|
+| `Current thread does not hold the state lock for root project` | Известный баг Gradle + Chaquopy ([chaquo/chaquopy#1339](https://github.com/chaquo/chaquopy/issues/1339)). Лечится двумя вещами: в `android/gradle.properties` **не должно быть** `org.gradle.parallel=true`, и AGP должен быть **8.9.x** с Gradle **8.11.1**. Обе проверяются `dip checkandroid` |
 | `Could not find a version that satisfies the requirement` | pip не нашёл wheel. Проверь версии Python (3.12), пакетов и ABI — они зафиксированы выше |
 | `No matching distributions available for your environment` | То же: обычно не совпал `minSdk` (нужен ≥ 24) или ABI |
 | `No module named 'numpy'` / `'PIL'` в приложении | Пакет не попал в APK. Смотри блок `pip` в `app/build.gradle.kts`; в логах устройства ищи тег `python.stderr` |

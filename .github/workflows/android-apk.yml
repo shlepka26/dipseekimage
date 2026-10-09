@@ -79,10 +79,10 @@ jobs:
           yes | sdkmanager --licenses > /dev/null 2>&1 || true
           sdkmanager "platforms;android-35" "build-tools;35.0.0" "platform-tools"
 
-      - name: Gradle 8.9
+      - name: Gradle 8.11.1
         uses: gradle/actions/setup-gradle@v6
         with:
-          gradle-version: '8.9'          # без wrapper: Gradle скачает само действие
+          gradle-version: '8.11.1'       # минимум для AGP 8.9.3; wrapper не нужен
           cache-provider: basic          # открытый кэш вместо проприетарного
 
       - name: Собрать debug APK

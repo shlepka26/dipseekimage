@@ -164,10 +164,13 @@ def main() -> int:
     def gradle_versions():
         root_gradle = read(os.path.join(ANDROID, "build.gradle.kts"))
         app_gradle = read(os.path.join(APP, "build.gradle.kts"))
-        for needle in ('id("com.android.application") version "8.7.3"',
+        for needle in ('id("com.android.application") version "8.9.3"',
                        'id("com.chaquo.python") version "17.0.0"',
                        'id("org.jetbrains.kotlin.android") version "2.0.21"'):
             _assert(needle in root_gradle, f"нет строки: {needle}")
+        # AGP 8.7.x валит сборку с Chaquopy ошибкой "does not hold the state lock"
+        _assert('version "8.7.' not in root_gradle,
+                "AGP 8.7.x несовместим с Chaquopy: chaquo/chaquopy#1339")
         _assert('version = "3.12"' in app_gradle, "не задана версия Python 3.12")
         _assert('install("numpy==1.26.2")' in app_gradle, "не прибит numpy")
         _assert('install("pillow==11.0.0")' in app_gradle, "не прибит pillow")
@@ -200,6 +203,30 @@ def main() -> int:
                 f"в {resolved} нет mobile.py")
         print(f"        Chaquopy возьмёт движок из {resolved}")
     check("srcDir Chaquopy указывает на общий python/", chaquopy_src)
+
+    def no_parallel_builds():
+        """Параллельная сборка вместе с Chaquopy валит :app:compileDebugKotlin
+        ошибкой "Current thread does not hold the state lock for root project"
+        (chaquo/chaquopy#1339, gradle/gradle#15730). Модуль в проекте один,
+        так что параллельность и не ускоряет ничего."""
+        props = read(os.path.join(ANDROID, "gradle.properties"))
+        enabled = [ln.strip() for ln in props.splitlines()
+                   if ln.strip().startswith("org.gradle.parallel")
+                   and "true" in ln.lower()]
+        _assert(not enabled,
+                "включён org.gradle.parallel - это известная причина падения сборки")
+        print("        org.gradle.parallel не включён")
+    check("параллельная сборка отключена (chaquopy#1339)", no_parallel_builds)
+
+    def wrapper_matches_gradle():
+        """Обе зафиксированные версии Gradle должны совпадать: та, что ставит
+        CI, и та, что прописана в wrapper для Android Studio."""
+        wrapper = read(os.path.join(ANDROID, "gradle", "wrapper",
+                                    "gradle-wrapper.properties"))
+        _assert("gradle-8.11.1-bin.zip" in wrapper,
+                "wrapper указывает не на Gradle 8.11.1")
+        print("        wrapper и CI на одной версии Gradle")
+    check("версия Gradle в wrapper и в CI совпадает", wrapper_matches_gradle)
 
     def no_pycache_in_apk():
         """Кэш в python/ попадёт в APK как данные. CI его чистит сам,
@@ -304,7 +331,7 @@ def main() -> int:
                        "gradle/actions/setup-gradle@v6", "actions/upload-artifact@v4"):
             _assert(needle in src, f"нет шага {needle}")
         _assert("python-version: '3.12'" in src, "в CI не зафиксирован Python 3.12")
-        _assert("gradle-version: '8.9'" in src, "в CI не зафиксирован Gradle 8.9")
+        _assert("gradle-version: '8.11.1'" in src, "в CI не зафиксирован Gradle 8.11.1")
         _assert("platforms;android-35" in src, "в CI не ставится платформа android-35")
         _assert("working-directory: android" in src, "сборка идёт не из папки android")
         _assert("assembleDebug" in src, "не собирается debug APK")
@@ -448,6 +475,9 @@ def main() -> int:
              "kotlin_compile"),
             ("Unsupported class file major version 61",
              "java_version"),
+            ("Execution failed for task ':app:compileDebugKotlin'.\n"
+             "   > Current thread does not hold the state lock for root project 'DipseekArtist'",
+             "state_lock"),
             ("No space left on device",
              "disk_space"),
         ]
