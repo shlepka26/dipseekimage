@@ -1,0 +1,30 @@
+# секреты
+.env
+
+# python
+__pycache__/
+*.pyc
+
+# служебный вывод самопроверок
+art/_selftest/
+art/_doctor/
+art/_icons/
+art/_android-sim/
+art/_check-logs/
+
+# контактный лист и превью иконки — генерируются заново
+art/index.png
+art/icon-preview.png
+
+# Android / Gradle
+android/.gradle/
+android/build/
+android/app/build/
+android/local.properties
+android/.idea/
+*.iml
+*.apk
+*.aab
+
+# скачанное сборщиком (Gradle, command-line tools)
+.tools/

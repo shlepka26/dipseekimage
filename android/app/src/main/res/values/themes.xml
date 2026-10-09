@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Интерфейс целиком рисует Compose, поэтому от темы нужен минимум:
+         отсутствие ActionBar и тёмный фон окна, чтобы не мигало белым
+         при запуске. -->
+    <style name="Theme.Dipseek" parent="android:Theme.Material.NoActionBar">
+        <item name="android:windowBackground">#0B0B10</item>
+    </style>
+</resources>

@@ -1,0 +1,101 @@
+name: Сборка APK
+
+# Собирает debug-APK в облаке: локально ставить Android SDK и Gradle не нужно.
+# Готовый файл появится в Artifacts у запуска workflow.
+#
+# Debug-APK подписан отладочным ключом — его можно установить на телефон
+# и передать другу, но нельзя выложить в Google Play. Для публикации нужен
+# release-вариант со своим keystore (см. android/README.md).
+
+on:
+  push:
+    branches: [main, master]
+    paths:
+      - 'android/**'
+      - 'python/**'
+      - '.github/workflows/android-apk.yml'
+  pull_request:
+    paths:
+      - 'android/**'
+      - 'python/**'
+  workflow_dispatch:
+
+jobs:
+  apk:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+
+    steps:
+      - name: Код
+        uses: actions/checkout@v4
+
+      - name: Java 17 (требование Android Gradle Plugin)
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      # Chaquopy компилирует байткод на сборочной машине, и версия Python
+      # обязана совпадать с версией внутри приложения (3.12).
+      - name: Python 3.12 для Chaquopy
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      # Если эта версия не совпадёт с версией в приложении, сборка упадёт
+      # на этапе pip — поэтому проверяем раньше и падаем быстро.
+      - name: Проверить версию Python
+        run: |
+          python3 --version
+          python3 -c "import sys; assert sys.version_info[:2] == (3, 12), sys.version; print('версия подходит')"
+
+      # --- Дешёвые проверки идут ДО установки SDK: если движок сломан,      ---
+      # --- незачем тратить десять минут на скачивание Android SDK           ---
+
+      - name: Зависимости движка для проверок
+        run: python3 -m pip install --quiet --disable-pip-version-check pillow numpy
+
+      - name: Проверки Python-движка
+        run: |
+          python3 tools/selftest.py
+          python3 tools/test_mobile.py
+          python3 tools/test_android_sim.py
+
+      # Chaquopy забирает папку python/ целиком, и кэш байткода попал бы
+      # в APK как данные. В репозитории его быть не должно, но подстрахуемся.
+      - name: Убрать кэш Python из общего движка
+        run: find python -name '__pycache__' -type d -prune -exec rm -rf {} + || true
+
+      - name: Статические проверки Android-проекта
+        run: python3 tools/check_android.py
+
+      # --- Дальше начинается долгое: SDK, Gradle и сборка ---
+
+      - name: Android SDK
+        uses: android-actions/setup-android@v4
+
+      - name: Лицензии и платформа android-35
+        run: |
+          yes | sdkmanager --licenses > /dev/null 2>&1 || true
+          sdkmanager "platforms;android-35" "build-tools;35.0.0" "platform-tools"
+
+      - name: Gradle 8.9
+        uses: gradle/actions/setup-gradle@v6
+        with:
+          gradle-version: '8.9'          # без wrapper: Gradle скачает само действие
+          cache-provider: basic          # открытый кэш вместо проприетарного
+
+      - name: Собрать debug APK
+        working-directory: android
+        run: gradle :app:assembleDebug --no-daemon --stacktrace
+
+      - name: Показать размер
+        run: ls -lh android/app/build/outputs/apk/debug/
+
+      - name: Выложить APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: dipseek-artist-apk
+          path: android/app/build/outputs/apk/debug/*.apk
+          if-no-files-found: error
+          retention-days: 30

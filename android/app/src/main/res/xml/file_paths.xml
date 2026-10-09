@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Что разрешено отдавать наружу через FileProvider.
+  Картины Python пишет в os.environ["HOME"], а это внутренняя папка
+  приложения files/ — ей и соответствует files-path.
+-->
+<paths>
+    <files-path
+        name="dipseek_works"
+        path="art/works/" />
+</paths>

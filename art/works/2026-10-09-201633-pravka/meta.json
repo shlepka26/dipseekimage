@@ -1,0 +1,14 @@
+{
+  "prompt": null,
+  "style": null,
+  "seed": null,
+  "created": "2026-10-09T20:16:33",
+  "ok": false,
+  "seconds": 0.08,
+  "returncode": 1,
+  "timed_out": false,
+  "engine": "subprocess",
+  "artifacts": [],
+  "stderr_tail": "Traceback (most recent call last):\n  File \"C:\\Users\\Momom\\OneDrive\\Desktop\\игры\\програмирование\\ДИПСИК ХУДОЖНИК\\art\\works\\2026-10-09-201633-pravka\\work.py\", line 1, in <module>\n    raise RuntimeError('нарочно')\nRuntimeError: нарочно\n",
+  "stdout_tail": ""
+}

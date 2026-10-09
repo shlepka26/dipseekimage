@@ -1,0 +1,8 @@
+{
+  "width": 1400,
+  "height": 1400,
+  "file": "art.png",
+  "prompt": "течения, генеративные линии",
+  "style": "flow-field",
+  "seed": 31337
+}
